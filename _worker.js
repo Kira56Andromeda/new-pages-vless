@@ -770,821 +770,253 @@ async function handleUDPOutBound(webSocket, vlessResponseHeader, log) {
 }
 
 /**
- * 
- * @param {string} userID 
+ *
+ * @param {string} userID - single or comma separated userIDs
  * @param {string | null} hostName
  * @returns {string}
  */
-function getVLESSConfig(userID, hostName) {
-    const vlessLink = `vless://${userID}\u0040${bestCFIP}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-workers`
-    const vlessTlsLink = `vless://${userID}\u0040${bestCFIP}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-workers-TLS`
-    return `
-下面是非 TLS 端口的节点信息及节点分享链接，可使用 CF 支持的非 TLS 端口：
+function getVLESSConfig(userIDs, hostName) {
+	const commonUrlPart = `:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2FKecered#%F0%9F%92%A9+${hostName}`;
+	const hashSeparator = "################################################################";
 
-地址：${hostName} 或 CF 优选 IP
-端口：80 或 CF 支持的非 TLS 端口
-UUID：${userID}
-传输：ws
-伪装域名：${hostName}
-路径：/?ed=2048
+	// Split the userIDs into an array
+	const userIDArray = userIDs.split(",");
 
-${vlessLink}
-
-下面是 TLS 端口的节点信息及节点分享链接，可使用 CF 支持的 TLS 端口：
-
-地址：${hostName} 或 CF 优选 IP
-端口：443 或 CF 支持的 TLS 端口
-UUID：${userID}
-传输：ws
-传输层安全：TLS
-伪装域名：${hostName}
-路径：/?ed=2048
-SNI 域名：${hostName}
-
-${vlessTlsLink}
-
-Base64 通用节点订阅链接：https://${hostName}/${userID}/base64
-Clash 配置文件订阅链接：https://${hostName}/${userID}/clash
-Sing-box 配置文件订阅链接：https://${hostName}/${userID}/sb
-
-提示：部分地区有 CF 默认域名被污染的情况，除非打开客户端的 TLS 分片功能，否则无法使用 TLS 端口的节点
-如为 Pages 部署的节点则只能使用 TLS 端口的节点
+	// Prepare output string for each userID
+	const output = userIDArray.map((userID) => {
+		const vlessMain = `vless://${userID}@${hostName}${commonUrlPart}`;
+		const vlessSec = `vless://${userID}@${proxyIP}${commonUrlPart}`;
+		return `UUID: ${userID}${hashSeparator}\nv2ray default ip
 ---------------------------------------------------------------
-更多教程，请关注：小御坂的破站
-`;
-}
+${vlessMain}
+<button onclick='copyToClipboard("${vlessMain}")'><i class="fa fa-clipboard"></i> Copy Vless</button>
+---------------------------------------------------------------
 
-function getBase64Config(userID, hostName) {
-    const vlessLinks = btoa(`vless://${userID}\u0040${bestCFIP}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-80\nvless://${userID}\u0040${bestCFIP}:8080?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-8080\nvless://${userID}\u0040${bestCFIP}:8880?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-8880\nvless://${userID}\u0040${bestCFIP}:2052?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-2052\nvless://${userID}\u0040${bestCFIP}:2082?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-2082\nvless://${userID}\u0040${bestCFIP}:2086?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-2086\nvless://${userID}\u0040${bestCFIP}:2095?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-2095\nvless://${userID}\u0040${bestCFIP}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-443\nvless://${userID}\u0040${bestCFIP}:2053?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-2053\nvless://${userID}\u0040${bestCFIP}:2083?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-2083\nvless://${userID}\u0040${bestCFIP}:2087?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-2087\nvless://${userID}\u0040${bestCFIP}:2096?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-2096\nvless://${userID}\u0040${bestCFIP}:8443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#Misaka-cf-vless-TLS-8443`);
-
-    return `${vlessLinks}`
-}
-
-function getClashConfig(userID, hostName) {
-    return `port: 7890
-allow-lan: true
-mode: rule
-log-level: info
-unified-delay: true
-global-client-fingerprint: chrome
-dns:
-  enable: true
-  listen: :53
-  ipv6: true
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  default-nameserver: 
-    - 223.5.5.5
-    - 114.114.114.114
-    - 8.8.8.8
-  nameserver:
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
-  fallback:
-    - https://1.0.0.1/dns-query
-    - tls://dns.google
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
-
-proxies:
-- name: cf-vless-80
+OpenClash
+---------------------------------------------------------------
+- name: ${hostName}
+  server: ${hostName}
   type: vless
-  server: ${bestCFIP}
-  port: 80
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-8080
-  type: vless
-  server: ${bestCFIP}
-  port: 8080
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-8880
-  type: vless
-  server: ${bestCFIP}
-  port: 8880
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-2052
-  type: vless
-  server: ${bestCFIP}
-  port: 2052
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-2082
-  type: vless
-  server: ${bestCFIP}
-  port: 2082
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-2086
-  type: vless
-  server: ${bestCFIP}
-  port: 2086
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-2095
-  type: vless
-  server: ${bestCFIP}
-  port: 2095
-  uuid: ${userID}
-  udp: false
-  tls: false
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-tls-443
-  type: vless
-  server: ${bestCFIP}
   port: 443
   uuid: ${userID}
-  udp: false
   tls: true
-  network: ws
+  skip-cert-verify: true
   servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
-
-- name: cf-vless-tls-2053
-  type: vless
-  server: ${bestCFIP}
-  port: 2053
-  uuid: ${userID}
-  udp: false
-  tls: true
   network: ws
-  servername: ${hostName}
   ws-opts:
-    path: "/?ed=2048"
+    path: /Kecered
     headers:
-      Host: ${hostName}
+      host: ${hostName}
+  udp: true
+---------------------------------------------------------------`;
+	}).join('\n');
+	const sublink = `https://${hostName}/sub/${userIDArray[0]}?format=clash`
+	const subbestip = `https://sub.xf.free.hr/auto?host=${hostName}&uuid=${userIDArray[0]}`;
+	const clash_link = `https://api.v1.mk/sub?target=clash&url=${encodeURIComponent(sublink)}&insert=false&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
+	// Prepare header string
+	const header = `
+<p align='center'><img src='http://lenshi.xtgem.com/icon/bergerak/naruto/Cidorikakashi.gif' alt='图片描述' style='margin-bottom: -50px;'></p>`;
 
-- name: cf-vless-tls-2083
-  type: vless
-  server: ${bestCFIP}
-  port: 2083
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
+	// HTML Head with CSS and FontAwesome library
+	const htmlHead = `
+  <head>
+	<title>EDtunnel: VLESS configuration</title>
+	<meta name='description' content='This is a tool for generating VLESS protocol configurations. Give us a star on GitHub https://github.com/3Kmfi6HP/EDtunnel if you found it useful!'>
+	<meta name='keywords' content='EDtunnel, cloudflare pages, cloudflare worker, severless'>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<meta property='og:site_name' content='EDtunnel: VLESS configuration' />
+	<meta property='og:type' content='website' />
+	<meta property='og:title' content='EDtunnel - VLESS configuration and subscribe output' />
+	<meta property='og:description' content='Use cloudflare pages and worker severless to implement vless protocol' />
+	<meta property='og:url' content='https://${hostName}/' />
+	<meta property='og:image' content='https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`vless://${userIDs.split(",")[0]}@${hostName}${commonUrlPart}`)}' />
+	<meta name='twitter:card' content='summary_large_image' />
+	<meta name='twitter:title' content='EDtunnel - VLESS configuration and subscribe output' />
+	<meta name='twitter:description' content='Use cloudflare pages and worker severless to implement vless protocol' />
+	<meta name='twitter:url' content='https://${hostName}/' />
+	<meta name='twitter:image' content='https://cloudflare-ipfs.com/ipfs/bafybeigd6i5aavwpr6wvnwuyayklq3omonggta4x2q7kpmgafj357nkcky' />
+	<meta property='og:image:width' content='1500' />
+	<meta property='og:image:height' content='1500' />
 
-- name: cf-vless-tls-2087
-  type: vless
-  server: ${bestCFIP}
-  port: 2087
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
+	<style>
+	body {
+	  font-family: Arial, sans-serif;
+	  background-color: #f0f0f0;
+	  color: #333;
+	  padding: 10px;
+	}
 
-- name: cf-vless-tls-2096
-  type: vless
-  server: ${bestCFIP}
-  port: 2096
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
+	a {
+	  color: #1a0dab;
+	  text-decoration: none;
+	}
+	img {
+	  max-width: 100%;
+	  height: auto;
+	}
 
-- name: cf-vless-tls-8443
-  type: vless
-  server: ${bestCFIP}
-  port: 8443
-  uuid: ${userID}
-  udp: false
-  tls: true
-  network: ws
-  servername: ${hostName}
-  ws-opts:
-    path: "/?ed=2048"
-    headers:
-      Host: ${hostName}
+	pre {
+	  white-space: pre-wrap;
+	  word-wrap: break-word;
+	  background-color: #fff;
+	  border: 1px solid #ddd;
+	  padding: 15px;
+	  margin: 10px 0;
+	}
+	/* Dark mode */
+	@media (prefers-color-scheme: dark) {
+	  body {
+		background-color: #333;
+		color: #f0f0f0;
+	  }
 
-proxy-groups:
-- name: 负载均衡
-  type: load-balance
-  url: http://www.gstatic.com/generate_204
-  interval: 300
-  proxies:
-    - cf-vless-80
-    - cf-vless-8080
-    - cf-vless-8880
-    - cf-vless-2052
-    - cf-vless-2082
-    - cf-vless-2086
-    - cf-vless-2095
-    - cf-vless-tls-443
-    - cf-vless-tls-2053
-    - cf-vless-tls-2083
-    - cf-vless-tls-2087
-    - cf-vless-tls-2096
-    - cf-vless-tls-8443
+	  a {
+		color: #9db4ff;
+	  }
 
-- name: 自动选择
-  type: url-test
-  url: http://www.gstatic.com/generate_204
-  interval: 300
-  tolerance: 50
-  proxies:
-    - cf-vless-80
-    - cf-vless-8080
-    - cf-vless-8880
-    - cf-vless-2052
-    - cf-vless-2082
-    - cf-vless-2086
-    - cf-vless-2095
-    - cf-vless-tls-443
-    - cf-vless-tls-2053
-    - cf-vless-tls-2083
-    - cf-vless-tls-2087
-    - cf-vless-tls-2096
-    - cf-vless-tls-8443
-    
-- name: 🌍选择代理
-  type: select
-  proxies:
-    - 负载均衡
-    - 自动选择
-    - DIRECT
-    - cf-vless-80
-    - cf-vless-8080
-    - cf-vless-8880
-    - cf-vless-2052
-    - cf-vless-2082
-    - cf-vless-2086
-    - cf-vless-2095
-    - cf-vless-tls-443
-    - cf-vless-tls-2053
-    - cf-vless-tls-2083
-    - cf-vless-tls-2087
-    - cf-vless-tls-2096
-    - cf-vless-tls-8443
+	  pre {
+		background-color: #282a36;
+		border-color: #34eb49;
+	  }
+	}
+	</style>
 
-rules:
-  - GEOIP,LAN,DIRECT
-  - GEOIP,CN,DIRECT
-  - MATCH,🌍选择代理`
+	<!-- Add FontAwesome library -->
+	<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'>
+  </head>
+  `;
+
+	// Join output with newlines, wrap inside <html> and <body>
+	return `
+  <html>
+  ${htmlHead}
+  <body>
+  <pre style='background-color: transparent; border: none;'>${header}</pre>
+  <pre>${output}</pre>
+  </body>
+  <script>
+	function copyToClipboard(text) {
+	  navigator.clipboard.writeText(text)
+		.then(() => {
+		  alert("Copied to clipboard");
+		})
+		.catch((err) => {
+		  console.error("Failed to copy to clipboard:", err);
+		});
+	}
+  </script>
+  </html>`;
 }
 
-function getSingConfig(userID, hostName) {
-    return `{
-  "log": {
-    "disabled": false,
-    "level": "info",
-    "timestamp": true
-  },
-  "experimental": {
-    "clash_api": {
-      "external_controller": "127.0.0.1:9090",
-      "external_ui": "ui",
-      "external_ui_download_url": "",
-      "external_ui_download_detour": "",
-      "secret": "",
-      "default_mode": "Rule"
-    },
-    "cache_file": {
-      "enabled": true,
-      "path": "cache.db",
-      "store_fakeip": true
-    }
-  },
-  "dns": {
-    "servers": [
-      {
-        "tag": "proxydns",
-        "address": "tls://8.8.8.8/dns-query",
-        "detour": "select"
-      },
-      {
-        "tag": "localdns",
-        "address": "h3://223.5.5.5/dns-query",
-        "detour": "direct"
-      },
-      {
-        "address": "rcode://refused",
-        "tag": "block"
-      },
-      {
-        "tag": "dns_fakeip",
-        "address": "fakeip"
-      }
-    ],
-    "rules": [
-      {
-        "outbound": "any",
-        "server": "localdns",
-        "disable_cache": true
-      },
-      {
-        "clash_mode": "Global",
-        "server": "proxydns"
-      },
-      {
-        "clash_mode": "Direct",
-        "server": "localdns"
-      },
-      {
-        "rule_set": "geosite-cn",
-        "server": "localdns"
-      },
-      {
-        "rule_set": "geosite-geolocation-!cn",
-        "server": "proxydns"
-      },
-      {
-        "rule_set": "geosite-geolocation-!cn",
-        "query_type": [
-          "A",
-          "AAAA"
-        ],
-        "server": "dns_fakeip"
-      }
-    ],
-    "fakeip": {
-      "enabled": true,
-      "inet4_range": "198.18.0.0/15",
-      "inet6_range": "fc00::/18"
-    },
-    "independent_cache": true,
-    "final": "proxydns"
-  },
-  "inbounds": [
-    {
-      "type": "tun",
-      "inet4_address": "172.19.0.1/30",
-      "inet6_address": "fd00::1/126",
-      "auto_route": true,
-      "strict_route": true,
-      "sniff": true,
-      "sniff_override_destination": true,
-      "domain_strategy": "prefer_ipv4"
-    }
-  ],
-  "outbounds": [
-    {
-      "tag": "select",
-      "type": "selector",
-      "default": "auto",
-      "outbounds": [
-        "auto",
-        "cf-vless-80",
-        "cf-vless-8080",
-        "cf-vless-8880",
-        "cf-vless-2052",
-        "cf-vless-2082",
-        "cf-vless-2086",
-        "cf-vless-2095",
-        "cf-vless-tls-443",
-        "cf-vless-tls-2053",
-        "cf-vless-tls-2083",
-        "cf-vless-tls-2087",
-        "cf-vless-tls-2096",
-        "cf-vless-tls-8443"
-      ]
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 80,
-      "tag": "cf-vless-80",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 8080,
-      "tag": "cf-vless-8080",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 8880,
-      "tag": "cf-vless-8880",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2052,
-      "tag": "cf-vless-2052",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2082,
-      "tag": "cf-vless-2082",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2086,
-      "tag": "cf-vless-2086",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2095,
-      "tag": "cf-vless-2095",
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 443,
-      "tag": "cf-vless-tls-443",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2053,
-      "tag": "cf-vless-tls-2053",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2083,
-      "tag": "cf-vless-tls-2083",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2087,
-      "tag": "cf-vless-tls-2087",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 2096,
-      "tag": "cf-vless-tls-2096",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "server": "${bestCFIP}",
-      "server_port": 8443,
-      "tag": "cf-vless-tls-8443",
-      "tls": {
-        "enabled": true,
-        "server_name": "${hostName}",
-        "insecure": false,
-        "utls": {
-          "enabled": true,
-          "fingerprint": "chrome"
-        }
-      },
-      "packet_encoding": "packetaddr",
-      "transport": {
-        "headers": {
-          "Host": [
-            "${hostName}"
-          ]
-        },
-        "path": "/",
-        "type": "ws"
-      },
-      "type": "vless",
-      "uuid": "${userID}"
-    },
-    {
-      "tag": "direct",
-      "type": "direct"
-    },
-    {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
-    },
-    {
-      "tag": "auto",
-      "type": "urltest",
-      "outbounds": [
-        "cf-vless-80",
-        "cf-vless-8080",
-        "cf-vless-8880",
-        "cf-vless-2052",
-        "cf-vless-2082",
-        "cf-vless-2086",
-        "cf-vless-2095",
-        "cf-vless-tls-443",
-        "cf-vless-tls-2053",
-        "cf-vless-tls-2083",
-        "cf-vless-tls-2087",
-        "cf-vless-tls-2096",
-        "cf-vless-tls-8443"
-      ],
-      "url": "https://www.gstatic.com/generate_204",
-      "interval": "1m",
-      "tolerance": 50,
-      "interrupt_exist_connections": false
-    }
-  ],
-  "route": {
-    "rule_set": [
-      {
-        "tag": "geosite-geolocation-!cn",
-        "type": "remote",
-        "format": "binary",
-        "url": "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/geolocation-!cn.srs",
-        "download_detour": "select",
-        "update_interval": "1d"
-      },
-      {
-        "tag": "geosite-cn",
-        "type": "remote",
-        "format": "binary",
-        "url": "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/geolocation-cn.srs",
-        "download_detour": "select",
-        "update_interval": "1d"
-      },
-      {
-        "tag": "geoip-cn",
-        "type": "remote",
-        "format": "binary",
-        "url": "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/cn.srs",
-        "download_detour": "select",
-        "update_interval": "1d"
-      }
-    ],
-    "auto_detect_interface": true,
-    "final": "select",
-    "rules": [
-      {
-        "outbound": "dns-out",
-        "protocol": "dns"
-      },
-      {
-        "clash_mode": "Direct",
-        "outbound": "direct"
-      },
-      {
-        "clash_mode": "Global",
-        "outbound": "select"
-      },
-      {
-        "rule_set": "geoip-cn",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": "geosite-cn",
-        "outbound": "direct"
-      },
-      {
-        "ip_is_private": true,
-        "outbound": "direct"
-      },
-      {
-        "rule_set": "geosite-geolocation-!cn",
-        "outbound": "select"
-      }
-    ]
-  },
-  "ntp": {
-    "enabled": true,
-    "server": "time.apple.com",
-    "server_port": 123,
-    "interval": "30m",
-    "detour": "direct"
-  }
-}`;
+const portSet_http = new Set([80, 8080, 8880, 2052, 2086, 2095, 2082]);
+const portSet_https = new Set([443, 8443, 2053, 2096, 2087, 2083]);
+
+function createVLESSSub(userID_Path, hostName) {
+	const userIDArray = userID_Path.includes(',') ? userID_Path.split(',') : [userID_Path];
+	const commonUrlPart_http = `?encryption=none&security=none&fp=random&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#`;
+	const commonUrlPart_https = `?encryption=none&security=tls&sni=${hostName}&fp=random&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#`;
+
+	const output = userIDArray.flatMap((userID) => {
+		const httpConfigurations = Array.from(portSet_http).flatMap((port) => {
+			if (!hostName.includes('pages.dev')) {
+				const urlPart = `${hostName}-HTTP-${port}`;
+				const vlessMainHttp = `vless://${userID}@${hostName}:${port}${commonUrlPart_http}${urlPart}`;
+				return proxyIPs.flatMap((proxyIP) => {
+					const vlessSecHttp = `vless://${userID}@${proxyIP}:${port}${commonUrlPart_http}${urlPart}-${proxyIP}-EDtunnel`;
+					return [vlessMainHttp, vlessSecHttp];
+				});
+			}
+			return [];
+		});
+
+		const httpsConfigurations = Array.from(portSet_https).flatMap((port) => {
+			const urlPart = `${hostName}-HTTPS-${port}`;
+			const vlessMainHttps = `vless://${userID}@${hostName}:${port}${commonUrlPart_https}${urlPart}`;
+			return proxyIPs.flatMap((proxyIP) => {
+				const vlessSecHttps = `vless://${userID}@${proxyIP}:${port}${commonUrlPart_https}${urlPart}-${proxyIP}-EDtunnel`;
+				return [vlessMainHttps, vlessSecHttps];
+			});
+		});
+
+		return [...httpConfigurations, ...httpsConfigurations];
+	});
+
+	return output.join('\n');
 }
+
+const cn_hostnames = [
+	'weibo.com',                // Weibo - A popular social media platform
+	'www.baidu.com',            // Baidu - The largest search engine in China
+	'www.qq.com',               // QQ - A widely used instant messaging platform
+	'www.taobao.com',           // Taobao - An e-commerce website owned by Alibaba Group
+	'www.jd.com',               // JD.com - One of the largest online retailers in China
+	'www.sina.com.cn',          // Sina - A Chinese online media company
+	'www.sohu.com',             // Sohu - A Chinese internet service provider
+	'www.tmall.com',            // Tmall - An online retail platform owned by Alibaba Group
+	'www.163.com',              // NetEase Mail - One of the major email providers in China
+	'www.zhihu.com',            // Zhihu - A popular question-and-answer website
+	'www.youku.com',            // Youku - A Chinese video sharing platform
+	'www.xinhuanet.com',        // Xinhua News Agency - Official news agency of China
+	'www.douban.com',           // Douban - A Chinese social networking service
+	'www.meituan.com',          // Meituan - A Chinese group buying website for local services
+	'www.toutiao.com',          // Toutiao - A news and information content platform
+	'www.ifeng.com',            // iFeng - A popular news website in China
+	'www.autohome.com.cn',      // Autohome - A leading Chinese automobile online platform
+	'www.360.cn',               // 360 - A Chinese internet security company
+	'www.douyin.com',           // Douyin - A Chinese short video platform
+	'www.kuaidi100.com',        // Kuaidi100 - A Chinese express delivery tracking service
+	'www.wechat.com',           // WeChat - A popular messaging and social media app
+	'www.csdn.net',             // CSDN - A Chinese technology community website
+	'www.imgo.tv',              // ImgoTV - A Chinese live streaming platform
+	'www.aliyun.com',           // Alibaba Cloud - A Chinese cloud computing company
+	'www.eyny.com',             // Eyny - A Chinese multimedia resource-sharing website
+	'www.mgtv.com',             // MGTV - A Chinese online video platform
+	'www.xunlei.com',           // Xunlei - A Chinese download manager and torrent client
+	'www.hao123.com',           // Hao123 - A Chinese web directory service
+	'www.bilibili.com',         // Bilibili - A Chinese video sharing and streaming platform
+	'www.youth.cn',             // Youth.cn - A China Youth Daily news portal
+	'www.hupu.com',             // Hupu - A Chinese sports community and forum
+	'www.youzu.com',            // Youzu Interactive - A Chinese game developer and publisher
+	'www.panda.tv',             // Panda TV - A Chinese live streaming platform
+	'www.tudou.com',            // Tudou - A Chinese video-sharing website
+	'www.zol.com.cn',           // ZOL - A Chinese electronics and gadgets website
+	'www.toutiao.io',           // Toutiao - A news and information app
+	'www.tiktok.com',           // TikTok - A Chinese short-form video app
+	'www.netease.com',          // NetEase - A Chinese internet technology company
+	'www.cnki.net',             // CNKI - China National Knowledge Infrastructure, an information aggregator
+	'www.zhibo8.cc',            // Zhibo8 - A website providing live sports streams
+	'www.zhangzishi.cc',        // Zhangzishi - Personal website of Zhang Zishi, a public intellectual in China
+	'www.xueqiu.com',           // Xueqiu - A Chinese online social platform for investors and traders
+	'www.qqgongyi.com',         // QQ Gongyi - Tencent's charitable foundation platform
+	'www.ximalaya.com',         // Ximalaya - A Chinese online audio platform
+	'www.dianping.com',         // Dianping - A Chinese online platform for finding and reviewing local businesses
+	'www.suning.com',           // Suning - A leading Chinese online retailer
+	'www.zhaopin.com',          // Zhaopin - A Chinese job recruitment platform
+	'www.jianshu.com',          // Jianshu - A Chinese online writing platform
+	'www.mafengwo.cn',          // Mafengwo - A Chinese travel information sharing platform
+	'www.51cto.com',            // 51CTO - A Chinese IT technical community website
+	'www.qidian.com',           // Qidian - A Chinese web novel platform
+	'www.ctrip.com',            // Ctrip - A Chinese travel services provider
+	'www.pconline.com.cn',      // PConline - A Chinese technology news and review website
+	'www.cnzz.com',             // CNZZ - A Chinese web analytics service provider
+	'www.telegraph.co.uk',      // The Telegraph - A British newspaper website	
+	'www.ynet.com',             // Ynet - A Chinese news portal
+	'www.ted.com',              // TED - A platform for ideas worth spreading
+	'www.renren.com',           // Renren - A Chinese social networking service
+	'www.pptv.com',             // PPTV - A Chinese online video streaming platform
+	'www.liepin.com',           // Liepin - A Chinese online recruitment website
+	'www.881903.com',           // 881903 - A Hong Kong radio station website
+	'www.aipai.com',            // Aipai - A Chinese online video sharing platform
+	'www.ttpaihang.com',        // Ttpaihang - A Chinese celebrity popularity ranking website
+	'www.quyaoya.com',          // Quyaoya - A Chinese online ticketing platform
+	'www.91.com',               // 91.com - A Chinese software download website
+	'www.dianyou.cn',           // Dianyou - A Chinese game information website
+	'www.tmtpost.com',          // TMTPost - A Chinese technology media platform
+	'www.douban.com',           // Douban - A Chinese social networking service
+	'www.guancha.cn',           // Guancha - A Chinese news and commentary website
+	'www.so.com',               // So.com - A Chinese search engine
+	'www.58.com',               // 58.com - A Chinese classified advertising website
+	'www.cnblogs.com',          // Cnblogs - A Chinese technology blog community
+	'www.cntv.cn',              // CCTV - China Central Television official website
+	'www.secoo.com',            // Secoo - A Chinese luxury e-commerce platform
+];
